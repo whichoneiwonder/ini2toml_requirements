@@ -1,0 +1,4 @@
+venv
+*.py[cdi]
+build
+*.egg-info
