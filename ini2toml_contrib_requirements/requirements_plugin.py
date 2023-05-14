@@ -29,19 +29,21 @@ class RequirementsPlugin:
     def pre_processing(self, text: str) -> str:
         "Take the raw requirements file and pretend it is "
         print(text)
-        output = """
-        [project.dependencie]
-        """
-        output = ""
-        cont = False
+        output = """[projectdependencies]\n"""
+
+        # output = ""
+        accum = []
         for line in text.splitlines(keepends=False):
-            if not cont:
-                pass
-                # output += '['
-            cont = line.endswith("\\")
-            output += "   " + line
-            if not cont:
-                output += '\n'
+            if line.endswith("\\"):
+                accum += line
+                continue
+            newline = " ".join([*accum, line])
+            output += f'"{newline}" = True\n'
+            accum = []
+
+        if accum:
+            output += '"' + " ".join(accum) + '" = True\n'
+        print(output)
         return output
 
     def intermediate(self, data: M) -> M:
@@ -49,7 +51,7 @@ class RequirementsPlugin:
         if not isinstance(data, (list, CommentedList)):
             ...
         result = M(
-            elements={"project": {"dependencies": data}},
+            elements={"project": {"dependencies": list(data["projectdependencies"].keys())}},
             inline_comment="From requirements.txt"
         )
         return result
