@@ -1,0 +1,17 @@
+{
+  "options": [],
+  "requirements": [],
+  "invalid_lines": [
+    {
+      "line_number": 1,
+      "line": "test>>1.2.0",
+      "error_message": "Invalid requirement: : Expected version after operator\n    test>>1.2.0\n         ^"
+    },
+    {
+      "line_number": 2,
+      "line": "test=>1.2.0",
+      "error_message": "Invalid requirement: : Expected end or semicolon (after name and no valid version specifier)\n    test=>1.2.0\n        ^"
+    }
+  ],
+  "comments": []
+}
