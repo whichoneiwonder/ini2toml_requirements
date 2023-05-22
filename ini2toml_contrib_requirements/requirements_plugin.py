@@ -4,7 +4,15 @@
 from functools import partial
 from os import linesep
 from typing import Dict, List, TypeVar
-from ini2toml.types import Translator, Profile, IntermediateRepr as M, CommentedList
+from ini2toml.types import (
+    Translator,
+    Profile,
+    IntermediateRepr as M,
+    CommentedList,
+    CommentedKV,
+    Commented,
+)
+from ini2toml.transformations import split_comment
 
 _T = TypeVar("_T")
 
@@ -39,29 +47,50 @@ class RequirementsPlugin:
             if line.endswith("\\"):
                 accum += line
                 continue
-            newline = " ".join([*accum, line])
-            output += f"{num}={newline}{linesep}"
+            if not line.strip():
+                continue
+
+            outline = " ".join([*accum, line])
+            if outline.strip().startswith("#"):
+                # this is a comment
+                output += outline + linesep
+            else:
+                output += f"key_{num}={outline}{linesep}"
             accum = []
             num += 1
 
         if accum:
-            output += f"{num}=" + " ".join(accum) + linesep
-        print("after_pre_processing:", output, sep=linesep)
+            # leftover line at end of file
+            output += f"key_{num}=" + " ".join(accum) + linesep
         return output
 
     def intermediate(self, data: M) -> M:
         "Assume is a list"
         if not isinstance(data, (list, CommentedList)):
-            ...
+            p_rint("Inter Repr is ", type(data))
+        # if isinstance(data, str):
+        #     req, comment = data.split("#")
+        #     return Commented(req.strip(), comment)
 
-        listified = CommentedList(data.get("dependencies", M()).values())
+        section: M = data.get("dependencies", M())
+        listified: CommentedList[str] = CommentedList()
+        headline_comment = data.inline_comment
+
+        p_rint("dependencies Repr is ", section, sep='\n')
+        for _key, val in section.items():
+            p_rint(_key, val)
+            listified.append(split_comment(val))
+        # for row in listified:
+            # row.
+        p_rint(listified)
+        # .values())
         elements = self.get_deps_position(listified)
         result = M(elements=elements, inline_comment="From requirements.txt")
-
+        p_rint(result)
         return result
 
     def get_deps_position(self, data: M) -> M:
-        return M({"project": {"dependencies": data}})
+        return M(project=M(dependencies=[*data]))
 
 
 class ExtraRequirementsPlugin(RequirementsPlugin):
@@ -73,4 +102,9 @@ class ExtraRequirementsPlugin(RequirementsPlugin):
     NAME = "extra-requirements.txt"
 
     def get_deps_position(self, data: M) -> M:
-        return M({"project": {"optional-dependencies": {"Extras": data}}})
+        return M({"project": {"optional-dependencies": {"Extras": [*data]}}})
+
+
+def p_rint(*data, sep=' ', **kwargs):
+    if True:
+        print(*data, sep=sep, **kwargs)
